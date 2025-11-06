@@ -1,0 +1,66 @@
+{{- /*
+ingress.yaml - Helm template for Kubernetes Ingress
+Ingress manages external HTTP/HTTPS access to services in the cluster
+It provides features like SSL termination, name-based virtual hosting, and path-based routing
+Note: This is only created if ingress.enabled is true in values.yaml
+*/ -}}
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-ingress
+  
+  labels:
+    app: {{ .Release.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+  
+  # Annotations provide configuration for the Ingress controller
+  # Different ingress controllers (nginx, traefik, etc.) use different annotations
+  annotations:
+    {{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+    
+spec:
+  # Ingress class determines which ingress controller will handle this resource
+  # Common values: nginx, traefik, alb (AWS), gce (GCP)
+  ingressClassName: {{ .Values.ingress.className }}
+  
+  # TLS configuration for HTTPS
+  # Requires a TLS secret containing certificate and private key
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      # Kubernetes secret containing tls.crt and tls.key
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  
+  # Routing rules - define how traffic is directed based on host/path
+  rules:
+    {{- range .Values.ingress.hosts }}
+    # Host-based routing - different domains go to different services
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            # PathType options:
+            # - Prefix: matches URL path prefix
+            # - Exact: exact match only
+            # - ImplementationSpecific: depends on ingress controller
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                # Service to route traffic to
+                name: {{ $.Release.Name }}-service
+                port:
+                  number: {{ $.Values.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}
