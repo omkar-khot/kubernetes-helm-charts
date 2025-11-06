@@ -1,0 +1,61 @@
+# values-prod.yaml - Production environment overrides
+# Usage: helm install myapp ./myapp-chart -f values-prod.yaml
+# This file overrides the default values.yaml for production deployment
+
+# Production typically needs more replicas for high availability
+replicaCount: 5
+
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  # Production should use specific version tags, never 'latest'
+  tag: "1.21.0"
+
+service:
+  # LoadBalancer type for production to get external IP
+  type: LoadBalancer
+  port: 80
+  targetPort: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Rate limiting for production
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+  hosts:
+    - host: myapp.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: myapp-prod-tls
+      hosts:
+        - myapp.example.com
+
+# Production needs higher resource limits
+resources:
+  limits:
+    cpu: 2000m      # 2 CPUs
+    memory: 2Gi     # 2 Gigabytes
+  requests:
+    cpu: 1000m      # 1 CPU
+    memory: 1Gi     # 1 Gigabyte
+
+env:
+  - name: ENVIRONMENT
+    value: "production"
+  - name: LOG_LEVEL
+    value: "info"  # Less verbose logging in production
+  - name: DATABASE_HOST
+    value: "postgres.prod.svc.cluster.local"
+
+# Enable autoscaling in production for traffic spikes
+autoscaling:
+  enabled: true
+  minReplicas: 5
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 75
