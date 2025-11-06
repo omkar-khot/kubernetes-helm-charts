@@ -1,0 +1,47 @@
+{{- /*
+service.yaml - Helm template for Kubernetes Service
+Service provides a stable network endpoint for accessing pods
+Even when pods are recreated with new IPs, service IP remains constant
+*/ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  # Service name - DNS entry will be created as <service-name>.<namespace>.svc.cluster.local
+  name: {{ .Release.Name }}-service
+  
+  labels:
+    app: {{ .Release.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+    
+spec:
+  # Service Type:
+  # - ClusterIP: Only accessible within the cluster (default, most secure)
+  # - NodePort: Accessible from outside via <NodeIP>:<NodePort>
+  # - LoadBalancer: Creates an external load balancer (cloud provider specific)
+  type: {{ .Values.service.type }}
+  
+  # Ports configuration
+  ports:
+    # Port exposed by the service
+    - port: {{ .Values.service.port }}
+      
+      # Port on the target pods where traffic will be forwarded
+      targetPort: {{ .Values.service.targetPort }}
+      
+      # Protocol (TCP/UDP)
+      protocol: TCP
+      
+      # Name for this port (useful when service has multiple ports)
+      name: http
+  
+  # Selector - defines which pods will receive traffic from this service
+  # Service forwards traffic to pods with matching labels
+  selector:
+    app: {{ .Release.Name }}
+    release: {{ .Release.Name }}
+  
+  # Session affinity - ensures requests from same client go to same pod
+  # Options: ClientIP or None
+  # Uncomment below for sticky sessions
+  # sessionAffinity: ClientIP
