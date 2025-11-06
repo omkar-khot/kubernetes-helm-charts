@@ -1,0 +1,110 @@
+# values.yaml - Default configuration values for the Helm chart
+# These values can be overridden using -f flag or --set during helm install/upgrade
+# This file contains DEFAULT values suitable for development environment
+
+# ============================================================================
+# REPLICA CONFIGURATION
+# Controls the number of pod replicas for horizontal scaling
+# ============================================================================
+replicaCount: 2
+
+# ============================================================================
+# IMAGE CONFIGURATION
+# Defines which Docker image to use for the application
+# ============================================================================
+image:
+  # Docker registry where the image is stored
+  repository: nginx
+  
+  # Pull policy determines when Kubernetes pulls the image
+  # Options: Always, IfNotPresent, Never
+  pullPolicy: IfNotPresent
+  
+  # Image tag - usually matches app version
+  # Using 'latest' is not recommended for production
+  tag: "1.21.0"
+
+# ============================================================================
+# SERVICE CONFIGURATION
+# Exposes the application within or outside the cluster
+# ============================================================================
+service:
+  # Service type determines how the app is exposed
+  # ClusterIP: Internal only (default)
+  # NodePort: Exposes on each node's IP at a static port
+  # LoadBalancer: Exposes externally using cloud provider's load balancer
+  type: ClusterIP
+  
+  # Port where the service will be accessible
+  port: 80
+  
+  # Target port on the container
+  targetPort: 80
+
+# ============================================================================
+# INGRESS CONFIGURATION
+# Manages external HTTP/HTTPS access to services
+# ============================================================================
+ingress:
+  # Enable or disable ingress
+  enabled: true
+  
+  # Ingress class name (e.g., nginx, traefik)
+  className: "nginx"
+  
+  # Annotations for ingress controller specific configurations
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  
+  # Host-based routing rules
+  hosts:
+    - host: myapp-dev.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  
+  # TLS/SSL configuration
+  tls:
+    - secretName: myapp-tls
+      hosts:
+        - myapp-dev.example.com
+
+# ============================================================================
+# RESOURCE LIMITS AND REQUESTS
+# Defines CPU and memory allocation for pods
+# ============================================================================
+resources:
+  # Limits: Maximum resources a container can use
+  limits:
+    cpu: 500m      # 500 millicores = 0.5 CPU
+    memory: 512Mi  # 512 Mebibytes
+  
+  # Requests: Guaranteed resources for the container
+  # Kubernetes uses this for scheduling decisions
+  requests:
+    cpu: 250m      # 250 millicores = 0.25 CPU
+    memory: 256Mi  # 256 Mebibytes
+
+# ============================================================================
+# ENVIRONMENT VARIABLES
+# Application-specific environment configurations
+# ============================================================================
+env:
+  - name: ENVIRONMENT
+    value: "development"
+  - name: LOG_LEVEL
+    value: "debug"
+  - name: DATABASE_HOST
+    value: "postgres.dev.svc.cluster.local"
+
+# ============================================================================
+# AUTOSCALING CONFIGURATION
+# Horizontal Pod Autoscaler (HPA) settings
+# ============================================================================
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
